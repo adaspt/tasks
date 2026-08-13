@@ -1,36 +1,37 @@
+import type { ReactNode } from 'react'
 import { CloudOff, RefreshCw, TriangleAlert } from 'lucide-react'
 import { signIn } from '@/auth/google-auth'
 import { usePendingCount, useSyncStatus } from '@/hooks/use-sync'
 import { runSync } from '@/sync/sync-controller'
 
 /**
- * Deliberately quiet. In an offline-first app the user needs to trust that
- * their edits are safe, so it says something when work is outstanding and
- * nothing at all when everything is where it should be.
+ * Deliberately quiet: it says something when work is outstanding, and shows a
+ * bare refresh icon otherwise. It is always present and always tappable, so
+ * there is a way to force a sync even when everything looks fine — without
+ * that, a stalled sync is indistinguishable from having nothing new.
  */
 export function SyncIndicator() {
   const status = useSyncStatus()
   const pending = usePendingCount()
 
-  if (status.phase === 'idle' && pending === 0) return null
-
-  const content = () => {
+  const { icon, text }: { icon: ReactNode; text: string | null } = (() => {
     if (status.phase === 'syncing') {
-      return { icon: <RefreshCw className="size-3.5 animate-spin" />, text: 'Syncing' }
+      return { icon: <RefreshCw className="size-3.5 animate-spin" />, text: null }
     }
     if (status.phase === 'error') {
-      return { icon: <TriangleAlert className="size-3.5" />, text: status.message ?? 'Sync failed' }
+      return {
+        icon: <TriangleAlert className="size-3.5" />,
+        text: status.message ?? 'Sync failed',
+      }
     }
     if (status.phase === 'signed-out') {
       return { icon: <CloudOff className="size-3.5" />, text: 'Not connected' }
     }
-    return {
-      icon: <CloudOff className="size-3.5" />,
-      text: `${pending} pending`,
+    if (pending > 0) {
+      return { icon: <CloudOff className="size-3.5" />, text: `${pending} pending` }
     }
-  }
-
-  const { icon, text } = content()
+    return { icon: <RefreshCw className="size-3.5" />, text: null }
+  })()
 
   /**
    * When signed out, ask for the token *first*. Browsers only allow the consent
@@ -52,7 +53,8 @@ export function SyncIndicator() {
     <button
       type="button"
       onClick={() => void reconnect()}
-      className="flex items-center gap-1.5 text-xs text-muted-foreground"
+      aria-label="Sync now"
+      className="-m-2 flex items-center gap-1.5 p-2 text-xs text-muted-foreground"
     >
       {icon}
       {text}

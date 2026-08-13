@@ -115,8 +115,17 @@ export function scheduleSync(delayMs = 3000): void {
 
 const PERIODIC_INTERVAL_MS = 5 * 60 * 1000
 
-/** Wires the background triggers. Returns a cleanup function. */
+/**
+ * Wires the background triggers and syncs straight away. Returns a cleanup
+ * function.
+ *
+ * The immediate sync is the important one: without it the app opens showing
+ * whatever IndexedDB happened to hold, and nothing arrives until the interval
+ * fires minutes later. That reads as the app being broken.
+ */
 export function startSyncTriggers(): () => void {
+  void runSync()
+
   const onOnline = () => void runSync()
   const onVisibility = () => {
     if (document.visibilityState === 'visible') void maybeSync()
