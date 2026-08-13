@@ -49,6 +49,20 @@ overdue date is the only colour in the app that carries meaning.
 parent task and are only visible when you open it. A parent shows a small `3/5` badge
 so you can tell at a glance that a checklist is there.
 
+## Adding and editing
+
+Quick-add sits above the navigation. **The view supplies the start date**, which keeps
+a date picker out of the common case entirely: added in Today means today, in Later
+means tomorrow, in Backlog means no date at all. Typing `! Buy milk` sets priority,
+the same convention as everywhere else.
+
+New tasks go to whichever list is currently filtered, and to your Google default list
+when the filter is off. The input names the destination so it is never a guess.
+
+Tapping a task opens a sheet holding everything else: start date, priority, notes,
+delete, and the checklist. Snoozing something is just changing its start date, which
+with one date per task is a single field write.
+
 ## Mapping onto Google Tasks
 
 The Google Tasks API has no priority field, no start date, and no concept of stars
