@@ -28,9 +28,16 @@ export function QuickAdd({ view }: { view: ViewId }) {
   const { listId } = useListFilter()
   const lists = useLists()
 
-  // Whichever list is filtered, else the first one. There is no setting for
-  // this: filtering to a list and adding to it is the obvious behaviour.
-  const targetList = listId ?? lists?.[0]?.id
+  // Whichever list is filtered, else Google's default list (which sorts first).
+  // There is no setting for this: filtering to a list and adding to it is the
+  // obvious behaviour.
+  const target = listId ? lists?.find((list) => list.id === listId) : lists?.[0]
+  const targetList = target?.id
+
+  // Name the destination whenever there is a choice to get wrong. Without it, a
+  // task can land in a list you are not looking at with nothing to say so.
+  const placeholder =
+    lists && lists.length > 1 && target ? `Add to ${target.title}` : 'Add a task'
 
   async function submit() {
     const raw = value.trim()
@@ -57,7 +64,7 @@ export function QuickAdd({ view }: { view: ViewId }) {
         <input
           value={value}
           onChange={(event) => setValue(event.target.value)}
-          placeholder="Add a task"
+          placeholder={placeholder}
           aria-label="Add a task"
           enterKeyHint="done"
           className="min-h-10 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"

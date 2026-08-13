@@ -10,8 +10,12 @@ export function useTasks(): Task[] | undefined {
   return useLiveQuery(() => db.tasks.where('isDeleted').equals(0).toArray(), [])
 }
 
+/**
+ * In Google's order, not alphabetical — the default list comes first, and it is
+ * the fallback for new tasks, so the ordering has to mean something.
+ */
 export function useLists(): TaskList[] | undefined {
-  return useLiveQuery(() => db.lists.where('isDeleted').equals(0).sortBy('title'), [])
+  return useLiveQuery(() => db.lists.where('isDeleted').equals(0).sortBy('sortOrder'), [])
 }
 
 export function useTask(id: string | undefined): Task | undefined {

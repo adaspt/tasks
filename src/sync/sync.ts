@@ -257,15 +257,21 @@ async function pullChanges(client: TasksClient, fullResync: boolean): Promise<nu
 async function pullLists(client: TasksClient): Promise<void> {
   const remoteLists = await client.listTaskLists()
 
-  for (const remote of remoteLists) {
+  // Google returns the user's default list first, so the index is meaningful.
+  for (const [sortOrder, remote] of remoteLists.entries()) {
     const local = await db.lists.where('remoteId').equals(remote.id).first()
     if (local) {
-      await db.lists.update(local.id, { title: remote.title, updated: remote.updated })
+      await db.lists.update(local.id, {
+        title: remote.title,
+        updated: remote.updated,
+        sortOrder,
+      })
     } else {
       await db.lists.add({
         id: newId(),
         remoteId: remote.id,
         title: remote.title,
+        sortOrder,
         updated: remote.updated,
         isDirty: 0,
         isDeleted: 0,

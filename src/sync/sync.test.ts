@@ -397,6 +397,19 @@ describe('lists', () => {
     expect(await localTitles()).toEqual(['Dentist'])
   })
 
+  it("keeps Google's ordering, which puts the default list first", async () => {
+    // Deliberately not alphabetical: sorting by title would make the fallback
+    // list for new tasks arbitrary, and tasks land somewhere unexpected.
+    google.addList('Work')
+    google.addList('Alpha')
+    await sync(google)
+
+    // sortBy, not orderBy: sortOrder is deliberately unindexed, since there are
+    // only ever a handful of lists.
+    const lists = await db.lists.toCollection().sortBy('sortOrder')
+    expect(lists.map((list) => list.title)).toEqual(['Work', 'Alpha'])
+  })
+
   it('picks up a rename', async () => {
     const list = google.addList('Personal')
     await sync(google)

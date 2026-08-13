@@ -24,6 +24,12 @@ interface SyncedRow {
 
 export interface TaskList extends SyncedRow {
   title: string
+  /**
+   * Position in Google's own ordering, which puts the user's default list
+   * first. Worth preserving: sorting lists alphabetically instead makes the
+   * fallback list for new tasks arbitrary.
+   */
+  sortOrder: number
 }
 
 export interface Task extends SyncedRow {

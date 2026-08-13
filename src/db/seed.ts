@@ -14,8 +14,8 @@ export async function seedIfEmpty(): Promise<void> {
   const work = newId()
 
   await db.lists.bulkAdd([
-    { id: personal, remoteId: 'seed-personal', title: 'Personal', updated: null, isDirty: 0, isDeleted: 0 },
-    { id: work, remoteId: 'seed-work', title: 'Work', updated: null, isDirty: 0, isDeleted: 0 },
+    { id: personal, remoteId: 'seed-personal', title: 'Personal', sortOrder: 0, updated: null, isDirty: 0, isDeleted: 0 },
+    { id: work, remoteId: 'seed-work', title: 'Work', sortOrder: 1, updated: null, isDirty: 0, isDeleted: 0 },
   ])
 
   const shoppingId = newId()
