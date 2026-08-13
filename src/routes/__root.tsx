@@ -1,6 +1,7 @@
 import { createRootRoute, Outlet, useRouterState } from '@tanstack/react-router'
 import { BottomNav } from '@/components/bottom-nav'
 import { ListFilterProvider } from '@/hooks/use-list-filter'
+import { useSyncEngine } from '@/hooks/use-sync'
 
 export const Route = createRootRoute({ component: RootLayout })
 
@@ -9,6 +10,8 @@ function RootLayout() {
   const isSignIn = useRouterState({
     select: (state) => state.location.pathname === '/sign-in',
   })
+
+  useSyncEngine()
 
   return (
     <ListFilterProvider>

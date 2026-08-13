@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { signIn } from '@/auth/google-auth'
 import { hasCompletedFirstSync } from '@/db/db'
+import { runSync } from '@/sync/sync-controller'
 
 export const Route = createFileRoute('/sign-in')({
   beforeLoad: async () => {
@@ -15,6 +18,28 @@ export const Route = createFileRoute('/sign-in')({
 
 function SignIn() {
   const router = useRouter()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function connect() {
+    setBusy(true)
+    setError(null)
+    try {
+      // Both must happen before the app is usable: a token alone gives no
+      // lists, and a task cannot be created without a list to put it in.
+      await signIn()
+      await runSync({ force: true })
+
+      if (!(await hasCompletedFirstSync())) {
+        throw new Error('Could not load your task lists')
+      }
+      await router.navigate({ to: '/today' })
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Sign-in failed')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col justify-between px-6 py-16">
@@ -28,13 +53,13 @@ function SignIn() {
       </div>
 
       <div className="space-y-3">
-        {/* TODO: Google Identity Services token client, scope .../auth/tasks. */}
-        <Button className="h-12 w-full" disabled>
-          Continue with Google
+        <Button className="h-12 w-full" onClick={() => void connect()} disabled={busy}>
+          {busy && <Loader2 className="size-4 animate-spin" />}
+          {busy ? 'Connecting' : 'Continue with Google'}
         </Button>
-        <p className="text-center text-xs text-muted-foreground">
-          Not wired up yet — auth is the next milestone.
-        </p>
+
+        {error && <p className="text-center text-sm text-destructive">{error}</p>}
+
         {import.meta.env.DEV && (
           <Button
             variant="outline"

@@ -1,4 +1,5 @@
 import { ListFilterBar } from '@/components/list-filter'
+import { SyncIndicator } from '@/components/sync-indicator'
 import { TaskRow } from '@/components/task-row'
 import { useTasks } from '@/db/queries'
 import { useListFilter } from '@/hooks/use-list-filter'
@@ -23,8 +24,9 @@ export function TaskView({ view, title }: { view: ViewId; title: string }) {
 
   return (
     <div className="mx-auto max-w-lg">
-      <header className="px-4 pt-6 pb-3">
+      <header className="flex items-center justify-between gap-3 px-4 pt-6 pb-3">
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <SyncIndicator />
       </header>
 
       <ListFilterBar />
