@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import { ListFilterBar } from '@/components/list-filter'
+import { QuickAdd } from '@/components/quick-add'
 import { SyncIndicator } from '@/components/sync-indicator'
 import { TaskRow } from '@/components/task-row'
+import { TaskSheet } from '@/components/task-sheet'
 import { useTasks } from '@/db/queries'
 import { useListFilter } from '@/hooks/use-list-filter'
 import { checklistProgress, tasksForView, type ViewId } from '@/lib/views'
@@ -14,6 +17,7 @@ const EMPTY: Record<ViewId, string> = {
 export function TaskView({ view, title }: { view: ViewId; title: string }) {
   const allTasks = useTasks()
   const { listId } = useListFilter()
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null)
 
   // Undefined means Dexie has not answered yet; rendering nothing beats a
   // flash of "empty" on every load.
@@ -23,7 +27,7 @@ export function TaskView({ view, title }: { view: ViewId; title: string }) {
   const tasks = tasksForView(view, scoped)
 
   return (
-    <div className="mx-auto max-w-lg">
+    <div className="mx-auto flex min-h-full max-w-lg flex-col">
       <header className="flex items-center justify-between gap-3 px-4 pt-6 pb-3">
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         <SyncIndicator />
@@ -31,22 +35,27 @@ export function TaskView({ view, title }: { view: ViewId; title: string }) {
 
       <ListFilterBar />
 
-      {tasks.length === 0 ? (
-        <p className="px-4 py-16 text-center text-sm text-muted-foreground">
-          {EMPTY[view]}
-        </p>
-      ) : (
-        <ul>
-          {tasks.map((task) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              checklist={checklistProgress(allTasks, task.id)}
-              showDate={view !== 'backlog'}
-            />
-          ))}
-        </ul>
-      )}
+      <div className="flex-1">
+        {tasks.length === 0 ? (
+          <p className="px-4 py-16 text-center text-sm text-muted-foreground">{EMPTY[view]}</p>
+        ) : (
+          <ul>
+            {tasks.map((task) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                checklist={checklistProgress(allTasks, task.id)}
+                showDate={view !== 'backlog'}
+                onOpen={() => setOpenTaskId(task.id)}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <QuickAdd view={view} />
+
+      <TaskSheet taskId={openTaskId} onClose={() => setOpenTaskId(null)} />
     </div>
   )
 }

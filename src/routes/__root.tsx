@@ -15,8 +15,11 @@ function RootLayout() {
 
   return (
     <ListFilterProvider>
-      <div className="flex min-h-dvh flex-col">
-        <main className="flex-1">
+      {/* Fixed viewport height with the scroll inside <main>, so a view can
+          stick something to the bottom of the list without it landing on top
+          of the nav. */}
+      <div className="flex h-dvh flex-col overflow-hidden">
+        <main className="flex-1 overflow-y-auto overscroll-contain">
           <Outlet />
         </main>
         {!isSignIn && <BottomNav />}

@@ -8,27 +8,35 @@ export function TaskRow({
   task,
   checklist,
   showDate = true,
+  onOpen,
 }: {
   task: Task
   checklist: { done: number; total: number } | null
   /** Backlog rows have no date to show. */
   showDate?: boolean
+  onOpen: () => void
 }) {
   const now = today()
   const isOverdue = task.due !== null && task.due < now
 
   return (
-    <li className="flex items-start gap-3 border-b px-4 py-3">
+    <li className="flex items-start gap-3 border-b px-4">
       <button
         type="button"
         onClick={() => void setTaskDone(task.id, true)}
         aria-label={`Complete ${task.title}`}
-        className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border text-transparent transition-colors active:bg-foreground active:text-background"
+        // Its own generous hit area, so completing never opens the sheet.
+        className="mt-3 grid size-6 shrink-0 place-items-center rounded-full border text-transparent transition-colors active:bg-foreground active:text-background"
       >
         <Check className="size-4" />
       </button>
 
-      <div className="min-w-0 flex-1">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="min-w-0 flex-1 py-3 text-left"
+        aria-label={`Open ${task.title}`}
+      >
         <p
           className={cn(
             'text-[15px] leading-snug break-words',
@@ -55,7 +63,7 @@ export function TaskRow({
             )}
           </div>
         )}
-      </div>
+      </button>
     </li>
   )
 }
