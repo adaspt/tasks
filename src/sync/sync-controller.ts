@@ -1,4 +1,4 @@
-import { AuthError, getAccessToken } from '@/auth/google-auth'
+import { AuthError, canSyncNow, getAccessToken } from '@/auth/google-auth'
 import { createTasksClient } from '@/sync/google-tasks'
 import { sync } from '@/sync/sync'
 
@@ -55,10 +55,17 @@ export function runSync(options: { force?: boolean } = {}): Promise<void> {
   if (running) return running
 
   lastAttemptAt = Date.now()
-  setStatus({ phase: 'syncing', message: null })
 
   const attempt = (async () => {
     try {
+      // Checked up front so the UI never flickers through "syncing" on its way
+      // to "not connected". No network call, just the cached token's expiry.
+      if (!(await canSyncNow())) {
+        setStatus({ phase: 'signed-out', message: null })
+        return
+      }
+
+      setStatus({ phase: 'syncing', message: null })
       const result = await sync(createTasksClient(getAccessToken), options)
 
       setStatus({

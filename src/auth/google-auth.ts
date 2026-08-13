@@ -1,14 +1,31 @@
 /**
  * Browser-side Google OAuth, via the Google Identity Services token client.
  *
- * With no backend there is nowhere safe to keep a refresh token, so this holds
- * a ~1 hour access token in memory and asks for a new one when it expires.
- * Nothing is persisted: an access token in localStorage would outlive the tab
- * for no benefit, since it expires anyway and can always be re-requested.
+ * With no backend there is nowhere safe to keep a refresh token, so this works
+ * with the ~1 hour access token GIS hands out.
  *
- * Failing to get a token is *not* an error state for the app. Everything reads
- * from Dexie, so a missing token only means syncing is deferred.
+ * Two rules keep it from being irritating:
+ *
+ * 1. The token is **persisted**, so a page load inside its lifetime needs no
+ *    call to Google at all. This matters because the GIS token client always
+ *    opens a popup window — even when it could issue the token silently, it
+ *    opens one and closes it again, which flashes on screen every single load.
+ *
+ * 2. A token is **only ever requested from a user gesture**. Nothing in the
+ *    background asks for one. When the cached token expires the app says "Not
+ *    connected" and waits to be tapped, rather than throwing up a popup on its
+ *    own schedule.
+ *
+ * The cost of persisting is that an access token sits in IndexedDB where a
+ * successful XSS could read it. It is scoped to Tasks alone and expires within
+ * the hour, which for a single-user personal app is the better trade against a
+ * popup on every launch.
+ *
+ * Failing to get a token is *not* an error state. Everything reads from Dexie,
+ * so no token only means syncing is deferred.
  */
+
+import { db, getMeta, setMeta } from '@/db/db'
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 const SCOPE = 'https://www.googleapis.com/auth/tasks'
@@ -77,6 +94,38 @@ let expiresAt = 0
 let snapshot: AuthState = { status: 'unknown', expiresAt: null }
 const listeners = new Set<() => void>()
 
+const TOKEN_KEY = 'googleAccessToken'
+
+interface StoredToken {
+  accessToken: string
+  expiresAt: number
+}
+
+function isUsable(): boolean {
+  return accessToken !== null && Date.now() < expiresAt - REFRESH_MARGIN_MS
+}
+
+/** Reads the cached token once per page load. Later calls join the first. */
+let restoring: Promise<void> | null = null
+
+function restoreToken(): Promise<void> {
+  restoring ??= (async () => {
+    const stored = await getMeta<StoredToken>(TOKEN_KEY)
+
+    if (stored && Date.now() < stored.expiresAt - REFRESH_MARGIN_MS) {
+      accessToken = stored.accessToken
+      expiresAt = stored.expiresAt
+      publish('signed-in')
+      return
+    }
+
+    if (stored) await db.meta.delete(TOKEN_KEY)
+    publish('signed-out')
+  })()
+
+  return restoring
+}
+
 function publish(status: AuthState['status']) {
   snapshot = { status, expiresAt: accessToken ? expiresAt : null }
   for (const listener of listeners) listener()
@@ -138,6 +187,7 @@ async function ensureTokenClient(): Promise<TokenClient> {
       if (response.access_token) {
         accessToken = response.access_token
         expiresAt = Date.now() + (response.expires_in ?? 3600) * 1000
+        void setMeta(TOKEN_KEY, { accessToken, expiresAt } satisfies StoredToken)
         publish('signed-in')
         pending?.resolve(response.access_token)
       } else {
@@ -183,15 +233,28 @@ function requestToken(): Promise<string> {
   return request
 }
 
-/** A valid token, renewing if needed. Throws rather than returning null. */
+/**
+ * The cached token, or an error. Deliberately never asks Google for a new one:
+ * that call opens a popup, and every caller here is a background sync. When
+ * this throws, the app carries on from Dexie and the UI offers a reconnect.
+ */
 export async function getAccessToken(): Promise<string> {
-  if (accessToken && Date.now() < expiresAt - REFRESH_MARGIN_MS) {
-    return accessToken
-  }
-  return requestToken()
+  await restoreToken()
+  if (isUsable()) return accessToken as string
+  throw new AuthError('Not connected to Google')
 }
 
-/** Interactive sign-in. Must be called from a user gesture, or the popup dies. */
+/** True without any network call, so callers can skip a doomed sync. */
+export async function canSyncNow(): Promise<boolean> {
+  await restoreToken()
+  return isUsable()
+}
+
+/**
+ * Interactive sign-in — the only thing that talks to GIS. Must be called from
+ * a user gesture: the popup is blocked otherwise, and it is the whole reason
+ * nothing else is allowed to trigger this.
+ */
 export async function signIn(): Promise<void> {
   await requestToken()
 }
@@ -200,6 +263,7 @@ export function signOut(): void {
   const current = accessToken
   accessToken = null
   expiresAt = 0
+  void db.meta.delete(TOKEN_KEY)
   publish('signed-out')
   if (current) window.google?.accounts.oauth2.revoke(current)
 }

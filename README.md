@@ -147,9 +147,21 @@ to need it.
 Vite · TypeScript · TanStack Router · Tailwind · shadcn/ui · Dexie · vite-plugin-pwa
 
 No backend. Authentication is browser-side Google OAuth (Google Identity Services),
-which means short-lived access tokens and an occasional reconnect prompt. After the
-first sync, a missing or expired token never blocks use — the app stays fully readable
-and editable and simply defers syncing until it has one.
+which means an access token good for about an hour and no refresh token.
+
+The token is cached, and **a new one is only ever requested from a tap**. Both follow
+from the same awkward detail: the GIS token client always opens a popup window, even
+when it could issue a token silently — it opens one and closes it again. Requesting a
+token on load would flash a popup on every launch, and doing it from a background
+timer would flash one at random. So a page load inside the token's lifetime talks to
+Google not at all, and once it expires the app says "Not connected" and waits to be
+tapped.
+
+The cost is an access token sitting in IndexedDB, where a successful XSS could read
+it. It is scoped to Tasks alone and expires within the hour.
+
+A missing or expired token never blocks use. The app stays fully readable and
+editable, and defers syncing until it has one.
 
 ## Development
 
