@@ -1,6 +1,6 @@
-import { Link } from '@tanstack/react-router'
-import { ArrowLeft, Undo2 } from 'lucide-react'
+import { Undo2 } from 'lucide-react'
 import { ListFilterBar } from '@/components/list-filter'
+import { SyncIndicator } from '@/components/sync-indicator'
 import { setTaskDone, useTasks } from '@/db/queries'
 import { useListFilter } from '@/hooks/use-list-filter'
 import { formatRelative, fromLocalDate, today } from '@/lib/dates'
@@ -23,15 +23,9 @@ export function DoneView() {
 
   return (
     <div className="mx-auto flex min-h-full max-w-lg flex-col">
-      <header className="flex items-center gap-2 px-4 pt-6 pb-3">
-        <Link
-          to="/backlog"
-          aria-label="Back"
-          className="-m-2 p-2 text-muted-foreground"
-        >
-          <ArrowLeft className="size-5" />
-        </Link>
+      <header className="flex items-center justify-between gap-3 px-4 pt-6 pb-3">
         <h1 className="text-2xl font-semibold tracking-tight">Done</h1>
+        <SyncIndicator />
       </header>
 
       <ListFilterBar />

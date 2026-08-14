@@ -20,9 +20,11 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      # v5 of both runs on Node 24. v4 targets Node 20, which GitHub now forces
+      # onto 24 anyway and warns about.
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm

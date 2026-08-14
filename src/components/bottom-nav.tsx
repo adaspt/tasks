@@ -1,13 +1,16 @@
 import { Link } from '@tanstack/react-router'
-import { CalendarClock, Inbox, Sun } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import type { ViewId } from '@/lib/views'
+import { CalendarClock, CheckCheck, Inbox, Sun } from 'lucide-react'
 
-const TABS: { id: ViewId; label: string; icon: typeof Sun }[] = [
-  { id: 'today', label: 'Today', icon: Sun },
-  { id: 'later', label: 'Later', icon: CalendarClock },
-  { id: 'backlog', label: 'Backlog', icon: Inbox },
-]
+/**
+ * Its own list rather than deriving from ViewId: Done is a destination but not
+ * a view — it has no start date rule and nothing can be added to it.
+ */
+const TABS = [
+  { to: '/today', label: 'Today', icon: Sun },
+  { to: '/later', label: 'Later', icon: CalendarClock },
+  { to: '/backlog', label: 'Backlog', icon: Inbox },
+  { to: '/done', label: 'Done', icon: CheckCheck },
+] as const
 
 export function BottomNav() {
   return (
@@ -17,19 +20,15 @@ export function BottomNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <ul className="mx-auto flex max-w-lg">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <li key={id} className="flex-1">
+        {TABS.map(({ to, label, icon: Icon }) => (
+          <li key={to} className="flex-1">
             <Link
-              to={`/${id}`}
+              to={to}
               className="flex min-h-14 flex-col items-center justify-center gap-1 text-muted-foreground transition-colors"
               activeProps={{ className: 'text-foreground' }}
             >
-              {({ isActive }) => (
-                <>
-                  <Icon className={cn('size-5', isActive && 'fill-current/10')} />
-                  <span className="text-xs font-medium">{label}</span>
-                </>
-              )}
+              <Icon className="size-5" />
+              <span className="text-xs font-medium">{label}</span>
             </Link>
           </li>
         ))}

@@ -51,9 +51,9 @@ so you can tell at a glance that a checklist is there.
 
 ## Done
 
-Completing a task makes it vanish from every view, so **Done** exists to undo that —
-reached from a button on Backlog rather than a fourth tab, because it is somewhere you
-go to fix a mistake rather than a place you work.
+Completing a task makes it vanish from every view, so **Done** exists to undo that. It
+is the fourth tab, but not a fourth view: nothing can be added to it and it has no
+start date rule of its own.
 
 It lists the last hundred completed tasks, newest first. Restoring one leaves its start
 date untouched, so it returns to whichever view it came from.
