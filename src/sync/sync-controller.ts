@@ -1,4 +1,4 @@
-import { AuthError, canSyncNow, getAccessToken } from '@/auth/google-auth'
+import { AuthError, canSyncNow, getAccessToken, signIn } from '@/auth/google-auth'
 import { createTasksClient } from '@/sync/google-tasks'
 import { sync } from '@/sync/sync'
 
@@ -96,6 +96,25 @@ export function runSync(options: { force?: boolean } = {}): Promise<void> {
   })
 
   return attempt
+}
+
+/**
+ * What every "tap to sync" affordance calls.
+ *
+ * When signed out it asks for the token *first*. Browsers only allow the
+ * consent popup while a user gesture is still live, and going through runSync
+ * would spend that on the sync engine's own async work before Google is ever
+ * reached — so this must stay a short hop from the click that triggered it.
+ */
+export async function reconnect(): Promise<void> {
+  if (status.phase === 'signed-out') {
+    try {
+      await signIn()
+    } catch {
+      return // the status already says what happened
+    }
+  }
+  await runSync()
 }
 
 /** Sync unless one ran very recently. Used by the chatty triggers. */

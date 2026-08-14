@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CompletedRow } from '@/components/completed-row'
 import { ListFilterBar } from '@/components/list-filter'
 import { QuickAdd } from '@/components/quick-add'
+import { SyncBanner } from '@/components/sync-banner'
 import { SyncIndicator } from '@/components/sync-indicator'
 import { TaskRow } from '@/components/task-row'
 import { TaskSheet } from '@/components/task-sheet'
@@ -34,6 +35,8 @@ export function TaskView({ view, title }: { view: ViewId; title: string }) {
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         <SyncIndicator />
       </header>
+
+      <SyncBanner />
 
       <ListFilterBar />
 
