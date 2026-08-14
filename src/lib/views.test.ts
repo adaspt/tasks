@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { Task } from '@/db/db'
 import { floatingDate } from '@/lib/dates'
-import { backlogTasks, checklistProgress, laterTasks, todayTasks } from './views'
+import {
+  backlogTasks,
+  checklistProgress,
+  completedTasks,
+  laterTasks,
+  todayTasks,
+} from './views'
 
 const NOW = floatingDate('2026-08-13')
 
@@ -95,6 +101,46 @@ describe('every view', () => {
 
     const withDateless = [...noise.map((t) => ({ ...t, due: null })), task({ title: 'kept' })]
     expect(titles(backlogTasks(withDateless))).toEqual(['kept'])
+  })
+})
+
+describe('completedTasks', () => {
+  it('is completed-only, newest first', () => {
+    const tasks = [
+      task({ title: 'open' }),
+      task({ title: 'older', status: 'completed', completedAt: '2026-08-10T09:00:00.000Z' }),
+      task({ title: 'newer', status: 'completed', completedAt: '2026-08-12T09:00:00.000Z' }),
+    ]
+    expect(titles(completedTasks(tasks))).toEqual(['newer', 'older'])
+  })
+
+  it('sorts tasks with no completion time last, not first', () => {
+    // Completed in Google's app before this one existed, so no timestamp.
+    const tasks = [
+      task({ title: 'untimed', status: 'completed', completedAt: null }),
+      task({ title: 'timed', status: 'completed', completedAt: '2026-08-10T09:00:00.000Z' }),
+    ]
+    expect(titles(completedTasks(tasks))).toEqual(['timed', 'untimed'])
+  })
+
+  it('hides subtasks and locally deleted rows', () => {
+    const tasks = [
+      task({ title: 'kept', status: 'completed', completedAt: '2026-08-10T09:00:00.000Z' }),
+      task({ title: 'subtask', status: 'completed', parent: 'p', completedAt: '2026-08-11T09:00:00.000Z' }),
+      task({ title: 'gone', status: 'completed', isDeleted: 1, completedAt: '2026-08-12T09:00:00.000Z' }),
+    ]
+    expect(titles(completedTasks(tasks))).toEqual(['kept'])
+  })
+
+  it('caps the list, keeping the most recent', () => {
+    const tasks = Array.from({ length: 5 }, (_, index) =>
+      task({
+        title: `task-${index}`,
+        status: 'completed',
+        completedAt: `2026-08-1${index}T09:00:00.000Z`,
+      }),
+    )
+    expect(titles(completedTasks(tasks, 2))).toEqual(['task-4', 'task-3'])
   })
 })
 

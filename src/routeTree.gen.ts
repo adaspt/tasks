@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AppBacklogRouteImport } from './routes/_app.backlog'
+import { Route as AppDoneRouteImport } from './routes/_app.done'
 import { Route as AppLaterRouteImport } from './routes/_app.later'
 import { Route as AppTodayRouteImport } from './routes/_app.today'
 
@@ -35,6 +36,11 @@ const AppBacklogRoute = AppBacklogRouteImport.update({
   path: '/backlog',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDoneRoute = AppDoneRouteImport.update({
+  id: '/done',
+  path: '/done',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLaterRoute = AppLaterRouteImport.update({
   id: '/later',
   path: '/later',
@@ -50,6 +56,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/backlog': typeof AppBacklogRoute
+  '/done': typeof AppDoneRoute
   '/later': typeof AppLaterRoute
   '/today': typeof AppTodayRoute
 }
@@ -57,6 +64,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/backlog': typeof AppBacklogRoute
+  '/done': typeof AppDoneRoute
   '/later': typeof AppLaterRoute
   '/today': typeof AppTodayRoute
 }
@@ -66,20 +74,22 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/_app/backlog': typeof AppBacklogRoute
+  '/_app/done': typeof AppDoneRoute
   '/_app/later': typeof AppLaterRoute
   '/_app/today': typeof AppTodayRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sign-in' | '/backlog' | '/later' | '/today'
+  fullPaths: '/' | '/sign-in' | '/backlog' | '/done' | '/later' | '/today'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sign-in' | '/backlog' | '/later' | '/today'
+  to: '/' | '/sign-in' | '/backlog' | '/done' | '/later' | '/today'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/sign-in'
     | '/_app/backlog'
+    | '/_app/done'
     | '/_app/later'
     | '/_app/today'
   fileRoutesById: FileRoutesById
@@ -120,6 +130,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBacklogRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/done': {
+      id: '/_app/done'
+      path: '/done'
+      fullPath: '/done'
+      preLoaderRoute: typeof AppDoneRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/later': {
       id: '/_app/later'
       path: '/later'
@@ -139,12 +156,14 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppBacklogRoute: typeof AppBacklogRoute
+  AppDoneRoute: typeof AppDoneRoute
   AppLaterRoute: typeof AppLaterRoute
   AppTodayRoute: typeof AppTodayRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppBacklogRoute: AppBacklogRoute,
+  AppDoneRoute: AppDoneRoute,
   AppLaterRoute: AppLaterRoute,
   AppTodayRoute: AppTodayRoute,
 }

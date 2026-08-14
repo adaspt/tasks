@@ -79,6 +79,30 @@ export function tasksForView(
   }
 }
 
+/**
+ * Recently completed, newest first — the undo list.
+ *
+ * Capped rather than filtered by age: a first sync can pull down a long history
+ * of completed tasks, and "the last hundred things I finished" is both bounded
+ * and more useful than an arbitrary cutoff date.
+ */
+export function completedTasks(tasks: Task[], limit = 100): Task[] {
+  return tasks
+    .filter(
+      (task) =>
+        task.isDeleted === 0 && task.parent === null && task.status === 'completed',
+    )
+    .sort((a, b) => {
+      // Tasks completed in Google's app before this one existed may have no
+      // timestamp; they sort last rather than jumping to the top.
+      if (a.completedAt === b.completedAt) return a.title.localeCompare(b.title)
+      if (a.completedAt === null) return 1
+      if (b.completedAt === null) return -1
+      return a.completedAt < b.completedAt ? 1 : -1
+    })
+    .slice(0, limit)
+}
+
 /** Checklist progress for a parent row: subtasks never appear in the views. */
 export function checklistProgress(
   tasks: Task[],

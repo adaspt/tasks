@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Link } from '@tanstack/react-router'
+import { History } from 'lucide-react'
 import { ListFilterBar } from '@/components/list-filter'
 import { QuickAdd } from '@/components/quick-add'
 import { SyncIndicator } from '@/components/sync-indicator'
@@ -30,7 +32,20 @@ export function TaskView({ view, title }: { view: ViewId; title: string }) {
     <div className="mx-auto flex min-h-full max-w-lg flex-col">
       <header className="flex items-center justify-between gap-3 px-4 pt-6 pb-3">
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        <SyncIndicator />
+        <div className="flex items-center gap-3">
+          {/* Undo lives off Backlog rather than in the nav: it is a place you
+              go occasionally to fix a mistake, not a fourth view. */}
+          {view === 'backlog' && (
+            <Link
+              to="/done"
+              aria-label="Completed tasks"
+              className="-m-2 p-2 text-muted-foreground"
+            >
+              <History className="size-4" />
+            </Link>
+          )}
+          <SyncIndicator />
+        </div>
       </header>
 
       <ListFilterBar />

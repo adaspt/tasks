@@ -49,6 +49,15 @@ overdue date is the only colour in the app that carries meaning.
 parent task and are only visible when you open it. A parent shows a small `3/5` badge
 so you can tell at a glance that a checklist is there.
 
+## Done
+
+Completing a task makes it vanish from every view, so **Done** exists to undo that —
+reached from a button on Backlog rather than a fourth tab, because it is somewhere you
+go to fix a mistake rather than a place you work.
+
+It lists the last hundred completed tasks, newest first. Restoring one leaves its start
+date untouched, so it returns to whichever view it came from.
+
 ## Adding and editing
 
 Quick-add sits above the navigation. **The view supplies the start date**, which keeps
