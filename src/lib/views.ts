@@ -1,13 +1,14 @@
 import type { Task } from '@/db/db'
 import { type FloatingDate, today } from '@/lib/dates'
 
-export type ViewId = 'today' | 'later' | 'backlog'
+export type ViewId = 'today' | 'later' | 'backlog' | 'done'
 
-export const VIEWS: { id: ViewId; label: string }[] = [
-  { id: 'today', label: 'Today' },
-  { id: 'later', label: 'Later' },
-  { id: 'backlog', label: 'Backlog' },
-]
+/**
+ * Views you can add a task to — everything except Done, where "add" is
+ * meaningless. Expressing that in the type means the quick-add cannot be
+ * rendered somewhere it makes no sense, rather than relying on a comment.
+ */
+export type AddableViewId = Exclude<ViewId, 'done'>
 
 /** Rows the three views draw from: open, top-level, not pending deletion. */
 function visible(tasks: Task[]): Task[] {
@@ -76,6 +77,8 @@ export function tasksForView(
       return laterTasks(tasks, now)
     case 'backlog':
       return backlogTasks(tasks)
+    case 'done':
+      return completedTasks(tasks)
   }
 }
 

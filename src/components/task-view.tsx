@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CompletedRow } from '@/components/completed-row'
 import { ListFilterBar } from '@/components/list-filter'
 import { QuickAdd } from '@/components/quick-add'
 import { SyncIndicator } from '@/components/sync-indicator'
@@ -12,6 +13,7 @@ const EMPTY: Record<ViewId, string> = {
   today: 'Nothing due today.',
   later: 'Nothing scheduled ahead.',
   backlog: 'Backlog is empty.',
+  done: 'Nothing completed yet.',
 }
 
 export function TaskView({ view, title }: { view: ViewId; title: string }) {
@@ -40,20 +42,26 @@ export function TaskView({ view, title }: { view: ViewId; title: string }) {
           <p className="px-4 py-16 text-center text-sm text-muted-foreground">{EMPTY[view]}</p>
         ) : (
           <ul>
-            {tasks.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                checklist={checklistProgress(allTasks, task.id)}
-                showDate={view !== 'backlog'}
-                onOpen={() => setOpenTaskId(task.id)}
-              />
-            ))}
+            {tasks.map((task) =>
+              view === 'done' ? (
+                <CompletedRow key={task.id} task={task} />
+              ) : (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  checklist={checklistProgress(allTasks, task.id)}
+                  showDate={view !== 'backlog'}
+                  onOpen={() => setOpenTaskId(task.id)}
+                />
+              ),
+            )}
           </ul>
         )}
       </div>
 
-      <QuickAdd view={view} />
+      {/* Narrowing here is what makes QuickAdd's AddableViewId typecheck: there
+          is no such thing as adding a task to Done. */}
+      {view !== 'done' && <QuickAdd view={view} />}
 
       <TaskSheet taskId={openTaskId} onClose={() => setOpenTaskId(null)} />
     </div>

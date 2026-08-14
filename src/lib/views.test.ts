@@ -6,6 +6,7 @@ import {
   checklistProgress,
   completedTasks,
   laterTasks,
+  tasksForView,
   todayTasks,
 } from './views'
 
@@ -141,6 +142,22 @@ describe('completedTasks', () => {
       }),
     )
     expect(titles(completedTasks(tasks, 2))).toEqual(['task-4', 'task-3'])
+  })
+})
+
+describe('tasksForView', () => {
+  it('dispatches every view, Done included', () => {
+    const tasks = [
+      task({ title: 'today', due: NOW }),
+      task({ title: 'later', due: floatingDate('2026-09-01') }),
+      task({ title: 'backlog' }),
+      task({ title: 'done', status: 'completed', completedAt: '2026-08-12T09:00:00.000Z' }),
+    ]
+
+    expect(titles(tasksForView('today', tasks, NOW))).toEqual(['today'])
+    expect(titles(tasksForView('later', tasks, NOW))).toEqual(['later'])
+    expect(titles(tasksForView('backlog', tasks, NOW))).toEqual(['backlog'])
+    expect(titles(tasksForView('done', tasks, NOW))).toEqual(['done'])
   })
 })
 

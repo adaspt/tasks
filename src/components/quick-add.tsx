@@ -5,14 +5,14 @@ import { createTask } from '@/db/queries'
 import { useListFilter } from '@/hooks/use-list-filter'
 import { addDays, today, type FloatingDate } from '@/lib/dates'
 import { parseTitle } from '@/lib/title'
-import type { ViewId } from '@/lib/views'
+import type { AddableViewId } from '@/lib/views'
 
 /**
  * The view decides the start date, which removes the date picker from the
  * common case entirely: things added to Today are for today, things added to
  * Backlog have no date by definition.
  */
-function defaultDue(view: ViewId): FloatingDate | null {
+function defaultDue(view: AddableViewId): FloatingDate | null {
   switch (view) {
     case 'today':
       return today()
@@ -23,7 +23,7 @@ function defaultDue(view: ViewId): FloatingDate | null {
   }
 }
 
-export function QuickAdd({ view }: { view: ViewId }) {
+export function QuickAdd({ view }: { view: AddableViewId }) {
   const [value, setValue] = useState('')
   const { listId } = useListFilter()
   const lists = useLists()
