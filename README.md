@@ -190,9 +190,14 @@ the only copy of anything unsynced.
 
 `firebase.json` does two things that matter. It rewrites everything to `index.html`,
 because `/today` is a route rather than a file and the service worker's own fallback
-only exists once it is installed. And it marks `sw.js`, `index.html` and the manifest
-`no-cache` while letting the hashed assets cache forever — without that, an installed
-app can keep serving an old service worker and never notice a deploy.
+only exists once it is installed.
+
+And it defaults everything to `no-cache`, overriding that for the content-hashed
+`/assets/**` which can never go stale. Note the default has to be a catch-all: Firebase
+matches header rules against the *request* path rather than the file eventually served,
+so a rule for `/index.html` never fires for `/` or `/today`. Getting this wrong leaves
+an installed app serving a stale service worker, unaware a deploy happened. Where two
+rules match, the later one wins.
 
 Every origin the app is served from must be an authorized JavaScript origin on the
 OAuth client, including `https://<project>.web.app` and

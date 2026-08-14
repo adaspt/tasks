@@ -11,26 +11,14 @@
     ],
     "headers": [
       {
-        "//": "Hashed filenames, so these can never go stale.",
+        "//": "Default to revalidating. Headers match the *request* path, not the rewritten file, so a rule for /index.html never fires for / or /today — those have to be covered by this.",
+        "source": "**",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      },
+      {
+        "//": "Overrides the rule above: filenames are content-hashed, so these can never go stale. Later entries win.",
         "source": "/assets/**",
         "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
-      },
-      {
-        "//": "The service worker and the shell must revalidate every time, or a deploy never reaches an installed app.",
-        "source": "/sw.js",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
-      },
-      {
-        "source": "/registerSW.js",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
-      },
-      {
-        "source": "/index.html",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
-      },
-      {
-        "source": "/manifest.webmanifest",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
       }
     ]
   }
