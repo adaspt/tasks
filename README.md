@@ -181,6 +181,24 @@ file. Don't edit it by hand; adding or renaming a route rewrites it.
 Tests cover the parts with real edge cases — floating dates, the `!` title
 convention, and the view filters and sort orders. There are no component tests.
 
+## Deployment
+
+Firebase Hosting, in the same Google Cloud project as the OAuth client, so there is
+one project rather than two. Pushing to `main` runs lint, tests and the build, and
+deploys only if all three pass — a broken build should not reach the phone that holds
+the only copy of anything unsynced.
+
+`firebase.json` does two things that matter. It rewrites everything to `index.html`,
+because `/today` is a route rather than a file and the service worker's own fallback
+only exists once it is installed. And it marks `sw.js`, `index.html` and the manifest
+`no-cache` while letting the hashed assets cache forever — without that, an installed
+app can keep serving an old service worker and never notice a deploy.
+
+Every origin the app is served from must be an authorized JavaScript origin on the
+OAuth client, including `https://<project>.web.app` and
+`https://<project>.firebaseapp.com`. Firebase preview channels get their own URLs, so
+sign-in does not work on them; only `main` is deployed, to `live`.
+
 App icons are generated from `public/icon.svg`:
 
 ```sh
