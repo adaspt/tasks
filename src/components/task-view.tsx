@@ -8,6 +8,7 @@ import { TaskRow } from '@/components/task-row'
 import { TaskSheet } from '@/components/task-sheet'
 import { useTasks } from '@/db/queries'
 import { useListFilter } from '@/hooks/use-list-filter'
+import { useSyncAlert } from '@/hooks/use-sync'
 import { checklistProgress, tasksForView, type ViewId } from '@/lib/views'
 
 const EMPTY: Record<ViewId, string> = {
@@ -20,6 +21,7 @@ const EMPTY: Record<ViewId, string> = {
 export function TaskView({ view, title }: { view: ViewId; title: string }) {
   const allTasks = useTasks()
   const { listId } = useListFilter()
+  const alert = useSyncAlert()
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
 
   // Undefined means Dexie has not answered yet; rendering nothing beats a
@@ -35,8 +37,6 @@ export function TaskView({ view, title }: { view: ViewId; title: string }) {
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         <SyncIndicator />
       </header>
-
-      <SyncBanner />
 
       <ListFilterBar />
 
@@ -62,9 +62,19 @@ export function TaskView({ view, title }: { view: ViewId; title: string }) {
         )}
       </div>
 
-      {/* Narrowing here is what makes QuickAdd's AddableViewId typecheck: there
-          is no such thing as adding a task to Done. */}
-      {view !== 'done' && <QuickAdd view={view} />}
+      {/* Everything that stays within thumb reach, stacked at the bottom of the
+          screen. The banner rides here rather than under the header because a
+          bad sync state is something you are meant to tap, and the bottom of a
+          phone is where tapping is cheap. */}
+      {(alert || view !== 'done') && (
+        <div className="sticky bottom-0 border-t bg-background/95 backdrop-blur">
+          {alert && <SyncBanner alert={alert} />}
+
+          {/* Narrowing here is what makes QuickAdd's AddableViewId typecheck:
+              there is no such thing as adding a task to Done. */}
+          {view !== 'done' && <QuickAdd view={view} />}
+        </div>
+      )}
 
       <TaskSheet taskId={openTaskId} onClose={() => setOpenTaskId(null)} />
     </div>

@@ -53,7 +53,9 @@ export function QuickAdd({ view }: { view: AddableViewId }) {
 
   return (
     <form
-      className="sticky bottom-0 border-t bg-background/95 px-4 py-2 backdrop-blur"
+      // Position and backdrop belong to the bottom stack in TaskView, which the
+      // sync banner shares.
+      className="px-4 py-2"
       onSubmit={(event) => {
         event.preventDefault()
         void submit()

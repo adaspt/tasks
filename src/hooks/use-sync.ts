@@ -28,6 +28,44 @@ export function usePendingCount(): number {
   )
 }
 
+export type SyncAlert = {
+  message: string
+  action: string
+  signedOut: boolean
+}
+
+/**
+ * Whether anything is wrong, separated from the banner that says so.
+ *
+ * The bottom bar has to know whether a banner is coming before it draws its own
+ * border, or Done — which has no add row — would show an empty bordered strip
+ * whenever sync is healthy.
+ *
+ * Only signed-out and failed states count. Ordinary pending changes are not
+ * announced: they clear within seconds of an edit, and a banner that flashed on
+ * every keystroke would train you to ignore it, which is exactly the opposite
+ * of the point.
+ */
+export function useSyncAlert(): SyncAlert | null {
+  const status = useSyncStatus()
+  const pending = usePendingCount()
+
+  if (status.phase !== 'signed-out' && status.phase !== 'error') return null
+
+  const signedOut = status.phase === 'signed-out'
+
+  // The unsynced count is folded into the signed-out message rather than being
+  // its own state, because the count is what raises the stakes: "not connected"
+  // is a shrug, "not connected, three changes unsaved" is not.
+  const message = signedOut
+    ? pending > 0
+      ? `Not connected — ${pending} change${pending === 1 ? '' : 's'} not saved`
+      : 'Not connected'
+    : (status.message ?? 'Sync failed')
+
+  return { message, action: signedOut ? 'Connect' : 'Retry', signedOut }
+}
+
 /**
  * Mounts the background triggers, and pushes whenever local changes appear.
  *

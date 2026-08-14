@@ -128,10 +128,12 @@ Conflicts resolve in one rule: a locally modified task wins and gets pushed; any
 else is overwritten from the server. A task deleted on the server stays deleted.
 
 When work is not reaching Google — no valid token, or a sync that failed — a banner
-says so, and how many changes are waiting. Ordinary pending changes are not announced:
-they clear within seconds of an edit, and a banner that appeared on every keystroke
-would teach you to ignore it. The header keeps a plain refresh control, so a sync can
-always be forced.
+says so, and how many changes are waiting. It sits at the bottom, directly above the
+add row, and the whole bar reconnects when tapped: the banner exists to be tapped, and
+the bottom of a phone is where tapping is cheap. Ordinary pending changes are not
+announced: they clear within seconds of an edit, and a banner that appeared on every
+keystroke would teach you to ignore it. The header keeps a plain refresh control, so a
+sync can always be forced.
 
 ## Non-goals
 
