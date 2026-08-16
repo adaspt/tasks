@@ -112,12 +112,20 @@ function sessionCookie(session: Session, keyB64: string, secure: boolean): strin
 
 /* --- request helpers ------------------------------------------------------- */
 
-/** Every origin registered as a redirect URI on the OAuth client. */
+/**
+ * Every origin registered as a redirect URI on the OAuth client.
+ *
+ * The custom domain is the one people use; the Firebase defaults stay listed so
+ * an install still pointed at them keeps working rather than being bounced
+ * mid-session.
+ */
 const ALLOWED_ORIGINS = [
+  'https://tasks.apeto.lt',
   'https://tasks-505418.web.app',
   'https://tasks-505418.firebaseapp.com',
 ]
 
+/** Where an unrecognised host is sent — so it should be the real home. */
 const CANONICAL_ORIGIN = ALLOWED_ORIGINS[0]!
 
 /**
