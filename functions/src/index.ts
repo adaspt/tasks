@@ -42,10 +42,15 @@ const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const REVOKE_URL = 'https://oauth2.googleapis.com/revoke'
 
-const RT_COOKIE = 'rt'
-const STATE_COOKIE = 'oauth_state'
-const RT_MAX_AGE_S = 400 * 24 * 60 * 60 // Chrome's ceiling; longer is silently clamped.
-const STATE_MAX_AGE_S = 600
+/**
+ * The only cookie name Firebase Hosting forwards to the backend. Every other
+ * cookie is stripped from the *request* — responses pass through untouched,
+ * which makes this fail in a thoroughly confusing way — so that static content
+ * stays cacheable at the CDN. Both the CSRF state and the refresh token
+ * therefore have to share this one cookie.
+ */
+const SESSION_COOKIE = '__session'
+const SESSION_MAX_AGE_S = 400 * 24 * 60 * 60 // Chrome's ceiling; longer is silently clamped.
 
 /* --- sealing --------------------------------------------------------------- */
 
@@ -69,6 +74,40 @@ function unseal(sealed: string, keyB64: string): string | null {
   } catch {
     return null
   }
+}
+
+/* --- session --------------------------------------------------------------- */
+
+/**
+ * Everything the server remembers, which is very little.
+ *
+ * `state` is present only while a consent round trip is in flight. The refresh
+ * token is carried alongside it rather than being overwritten, so abandoning a
+ * consent screen does not sign out a session that was working perfectly well.
+ */
+interface Session {
+  state?: string
+  refreshToken?: string
+}
+
+function readSession(req: Request, keyB64: string): Session {
+  const raw = readCookie(req, SESSION_COOKIE)
+  if (!raw) return {}
+  const opened = unseal(raw, keyB64)
+  if (!opened) return {}
+  try {
+    const parsed = JSON.parse(opened) as unknown
+    return typeof parsed === 'object' && parsed !== null ? (parsed as Session) : {}
+  } catch {
+    return {}
+  }
+}
+
+function sessionCookie(session: Session, keyB64: string, secure: boolean): string {
+  return cookie(SESSION_COOKIE, seal(JSON.stringify(session), keyB64), {
+    maxAge: SESSION_MAX_AGE_S,
+    secure,
+  })
 }
 
 /* --- request helpers ------------------------------------------------------- */
@@ -180,6 +219,7 @@ interface TokenBody {
 function authStart(req: Request, res: Response): void {
   const state = crypto.randomBytes(16).toString('hex')
   const returnTo = safeReturnPath(req.query.return)
+  const session = readSession(req, encKey.value())
 
   const url = new URL(AUTH_URL)
   url.searchParams.set('client_id', CLIENT_ID)
@@ -190,10 +230,10 @@ function authStart(req: Request, res: Response): void {
   url.searchParams.set('prompt', 'consent')
   url.searchParams.set('state', `${state}:${returnTo}`)
 
-  res.setHeader('Set-Cookie', cookie(STATE_COOKIE, state, {
-    maxAge: STATE_MAX_AGE_S,
-    secure: isSecure(req),
-  }))
+  res.setHeader(
+    'Set-Cookie',
+    sessionCookie({ ...session, state }, encKey.value(), isSecure(req)),
+  )
   res.redirect(302, url.toString())
 }
 
@@ -203,7 +243,7 @@ async function authCallback(req: Request, res: Response): Promise<void> {
   const state = separator === -1 ? raw : raw.slice(0, separator)
   const returnTo = separator === -1 ? '/' : safeReturnPath(raw.slice(separator + 1))
 
-  const expected = readCookie(req, STATE_COOKIE)
+  const expected = readSession(req, encKey.value()).state
   if (!state || !expected || state !== expected) {
     res.status(400).send('Sign-in could not be verified. Please try again.')
     return
@@ -231,13 +271,15 @@ async function authCallback(req: Request, res: Response): Promise<void> {
     return
   }
 
-  res.setHeader('Set-Cookie', [
-    cookie(RT_COOKIE, seal(exchanged.body.refresh_token, encKey.value()), {
-      maxAge: RT_MAX_AGE_S,
-      secure: isSecure(req),
-    }),
-    cookie(STATE_COOKIE, '', { maxAge: 0, secure: isSecure(req) }),
-  ])
+  // The state is dropped rather than cleared: a fresh session replaces it.
+  res.setHeader(
+    'Set-Cookie',
+    sessionCookie(
+      { refreshToken: exchanged.body.refresh_token },
+      encKey.value(),
+      isSecure(req),
+    ),
+  )
   res.redirect(302, returnTo)
 }
 
@@ -250,8 +292,7 @@ async function authCallback(req: Request, res: Response): Promise<void> {
 async function mintToken(req: Request, res: Response): Promise<void> {
   res.setHeader('Cache-Control', 'no-store')
 
-  const sealed = readCookie(req, RT_COOKIE)
-  const refreshToken = sealed ? unseal(sealed, encKey.value()) : null
+  const refreshToken = readSession(req, encKey.value()).refreshToken
   if (!refreshToken) {
     res.status(401).json({ error: 'not_connected' })
     return
@@ -268,7 +309,7 @@ async function mintToken(req: Request, res: Response): Promise<void> {
     // invalid_grant means revoked, password-changed, or expired for good. The
     // cookie is dead weight from here, so drop it and make the app ask again.
     if (refreshed.body.error === 'invalid_grant') {
-      res.setHeader('Set-Cookie', cookie(RT_COOKIE, '', { maxAge: 0, secure: isSecure(req) }))
+      res.setHeader('Set-Cookie', cookie(SESSION_COOKIE, '', { maxAge: 0, secure: isSecure(req) }))
       res.status(401).json({ error: 'invalid_grant' })
       return
     }
@@ -283,10 +324,9 @@ async function mintToken(req: Request, res: Response): Promise<void> {
 }
 
 async function signOut(req: Request, res: Response): Promise<void> {
-  const sealed = readCookie(req, RT_COOKIE)
-  const refreshToken = sealed ? unseal(sealed, encKey.value()) : null
+  const refreshToken = readSession(req, encKey.value()).refreshToken
 
-  res.setHeader('Set-Cookie', cookie(RT_COOKIE, '', { maxAge: 0, secure: isSecure(req) }))
+  res.setHeader('Set-Cookie', cookie(SESSION_COOKIE, '', { maxAge: 0, secure: isSecure(req) }))
 
   if (refreshToken) {
     // Best effort: the cookie is already gone, so a failure here is not worth
