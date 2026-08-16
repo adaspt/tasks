@@ -37,8 +37,17 @@ jobs:
       - run: npm test
       - run: npm run build
 
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      # The function is a separate npm project with its own lockfile. Its build
+      # also runs in firebase.json's predeploy, but doing it here means a
+      # type error fails the job before anything is shipped.
+      - run: npm ci --prefix functions
+      - run: npm run build --prefix functions
+
+      - uses: google-github-actions/auth@v2
         with:
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: tasks-505418
-          channelId: live
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      # Replaces action-hosting-deploy, which only ever handled hosting. Both
+      # targets go in one command so the /api rewrite and the function it points
+      # at can never be deployed apart.
+      - run: npx --yes firebase-tools@latest deploy --only hosting,functions --project tasks-505418 --non-interactive

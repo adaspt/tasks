@@ -25,3 +25,10 @@ dist-ssr
 
 # Firebase
 .firebase/
+functions/lib/
+
+# Secrets live in Secret Manager, never here. Note .env *is* tracked — it holds
+# only the public client id — so an untracked pattern for the functions side
+# keeps a client secret from being one stray edit away from a commit.
+functions/.env
+functions/.env.*

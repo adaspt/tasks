@@ -1,8 +1,23 @@
 {
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs22",
+      "ignore": ["node_modules", ".git", "*.local", "src", "tsconfig.json"],
+      "//": "The deployed bundle is the compiled lib/, so the sources above are excluded. CI builds separately, but this keeps a local `firebase deploy` from shipping stale output.",
+      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
+    }
+  ],
   "hosting": {
     "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
+      {
+        "//": "Must precede the catch-all: rewrites are evaluated in order and the first match wins, so a `**` rule above this one would answer every API call with the app shell. pinTag keeps the function version and the static release rolling back together.",
+        "source": "/api/**",
+        "function": { "functionId": "api", "region": "us-central1", "pinTag": true }
+      },
       {
         "//": "Client-side routing: /today and friends are not files. The service worker's navigateFallback only helps once it is installed, so the first visit to a deep link needs this.",
         "source": "**",
@@ -19,6 +34,11 @@
         "//": "Overrides the rule above: filenames are content-hashed, so these can never go stale. Later entries win.",
         "source": "/assets/**",
         "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      },
+      {
+        "//": "no-store rather than no-cache: an access token must not be written to disk at all, which is a stronger claim than revalidating before reuse.",
+        "source": "/api/**",
+        "headers": [{ "key": "Cache-Control", "value": "no-store" }]
       }
     ]
   }

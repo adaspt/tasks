@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    // node18 emits CommonJS here, since functions/package.json has no
+    // "type": "module". Plain "commonjs" would force the node10 resolver,
+    // which TypeScript 6 rejects outright.
+    "module": "node18",
+    "target": "es2023",
+    "lib": ["es2023"],
+    "outDir": "lib",
+    "rootDir": "src",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "sourceMap": true
+  },
+  "include": ["src"]
+}
