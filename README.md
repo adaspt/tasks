@@ -165,19 +165,27 @@ to need it.
 
 Vite · TypeScript · TanStack Router · Tailwind · shadcn/ui · Dexie · vite-plugin-pwa
 
-No backend. Authentication is browser-side Google OAuth (Google Identity Services),
-which means an access token good for about an hour and no refresh token.
+One backend endpoint, and only for authentication. Everything else is browser-side.
 
-The token is cached, and **a new one is only ever requested from a tap**. Both follow
-from the same awkward detail: the GIS token client always opens a popup window, even
-when it could issue a token silently — it opens one and closes it again. Requesting a
-token on load would flash a popup on every launch, and doing it from a background
-timer would flash one at random. So a page load inside the token's lifetime talks to
-Google not at all, and once it expires the app says "Not connected" and waits to be
-tapped.
+Google issues refresh tokens only to a client that can keep a secret, which a browser
+cannot — so `functions/` holds a single Cloud Function that owns the OAuth exchange.
+Sign-in is a full-page redirect to Google; the callback seals the refresh token with
+AES-256-GCM and puts it in an httpOnly cookie. There is no database: one user means
+one token, and the cookie is where it lives. Chrome caps cookie lifetime at 400 days,
+which is the real re-authentication interval.
 
-The cost is an access token sitting in IndexedDB, where a successful XSS could read
-it. It is scoped to Tasks alone and expires within the hour.
+`/api/token` trades that cookie for a fresh access token. Because it is an ordinary
+same-origin fetch rather than a popup, renewal needs no user gesture and can happen on
+a background sync — which is the entire point. The earlier browser-only setup used the
+GIS token client, whose popup could only be opened from a tap, so an expired token
+meant tapping "Connect" about once an hour.
+
+Access tokens are held in memory only. They last an hour and cost one request to
+replace, so persisting them would trade a real XSS exposure for nothing.
+
+There is no CORS header on `/api`, and the cookie is `SameSite=Lax`. Together those
+are the CSRF defence: a hostile page cannot make the browser send the cookie, and
+could not read the response if it did.
 
 A missing or expired token never blocks use. The app stays fully readable and
 editable, and defers syncing until it has one.
@@ -209,7 +217,19 @@ the only copy of anything unsynced.
 
 `firebase.json` does two things that matter. It rewrites everything to `index.html`,
 because `/today` is a route rather than a file and the service worker's own fallback
-only exists once it is installed.
+only exists once it is installed. Ahead of that sits a rewrite of `/api/**` to the
+function — order matters, since the first matching rewrite wins and `**` matches
+everything.
+
+Two secrets must exist in Secret Manager before a deploy can work, and neither belongs
+in the repo:
+
+```sh
+firebase functions:secrets:set GOOGLE_CLIENT_SECRET
+openssl rand -base64 32 | firebase functions:secrets:set TOKEN_ENC_KEY --data-file -
+```
+
+Rotating `TOKEN_ENC_KEY` invalidates the cookie and means signing in once more.
 
 And it defaults everything to `no-cache`, overriding that for the content-hashed
 `/assets/**` which can never go stale. Note the default has to be a catch-all: Firebase

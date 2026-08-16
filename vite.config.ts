@@ -40,6 +40,11 @@ export default defineConfig({
         // response ever goes through the service worker cache.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: '/index.html',
+        // /api/auth/start is a *top-level navigation*, so without this the
+        // installed app answers it with the shell instead of letting it reach
+        // Google — breaking sign-in only once the service worker exists, which
+        // is to say only on the phone.
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [],
       },
     }),
@@ -47,6 +52,17 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),
+    },
+  },
+  server: {
+    proxy: {
+      // Points at the functions emulator. Deliberately no `changeOrigin`: the
+      // function builds its OAuth redirect_uri from the Host header, and
+      // rewriting it would produce a redirect_uri that is not registered.
+      '/api': {
+        target: 'http://127.0.0.1:5001/tasks-505418/us-central1/api',
+        changeOrigin: false,
+      },
     },
   },
 })

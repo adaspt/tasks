@@ -101,20 +101,14 @@ export function runSync(options: { force?: boolean } = {}): Promise<void> {
 /**
  * What every "tap to sync" affordance calls.
  *
- * When signed out it asks for the token *first*. Browsers only allow the
- * consent popup while a user gesture is still live, and going through runSync
- * would spend that on the sync engine's own async work before Google is ever
- * reached — so this must stay a short hop from the click that triggered it.
+ * Syncing is tried *first*, because the overwhelmingly common cause of
+ * "signed-out" is now an access token that simply aged out — which the server
+ * replaces with no interaction at all. Only a grant that is genuinely gone
+ * survives that and needs the user, and then signIn() leaves the page entirely.
  */
 export async function reconnect(): Promise<void> {
-  if (status.phase === 'signed-out') {
-    try {
-      await signIn()
-    } catch {
-      return // the status already says what happened
-    }
-  }
-  await runSync()
+  await runSync({ force: true })
+  if (status.phase === 'signed-out') await signIn()
 }
 
 /** Sync unless one ran very recently. Used by the chatty triggers. */
