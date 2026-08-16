@@ -73,15 +73,34 @@ function unseal(sealed: string, keyB64: string): string | null {
 
 /* --- request helpers ------------------------------------------------------- */
 
+/** Every origin registered as a redirect URI on the OAuth client. */
+const ALLOWED_ORIGINS = [
+  'https://tasks-505418.web.app',
+  'https://tasks-505418.firebaseapp.com',
+]
+
+const CANONICAL_ORIGIN = ALLOWED_ORIGINS[0]!
+
 /**
- * Built from the incoming request rather than configured, so the same code
- * serves the deployed origin and the emulator behind Vite's proxy. Both must be
- * registered as redirect URIs on the OAuth client.
+ * The origin the user is actually on, which is *not* simply the Host header.
+ *
+ * Hosting forwards to Cloud Run with Host set to the function's own run.app
+ * name — with pinTag, a per-revision one — and building a redirect_uri from
+ * that earns a redirect_uri_mismatch from Google, since no such URI is or could
+ * usefully be registered. The original host arrives in x-forwarded-host.
+ *
+ * Anything unrecognised falls back to the canonical origin rather than being
+ * trusted: a spoofed header can then only ever produce a URI Google already
+ * accepts, never a new one.
  */
 function originOf(req: Request): string {
-  const host = req.get('host') ?? 'localhost'
-  const proto = req.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')
-  return `${proto}://${host}`
+  const host = req.get('x-forwarded-host') ?? req.get('host') ?? ''
+
+  // The emulator behind Vite's proxy, where there is no TLS to speak of.
+  if (/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host)) return `http://${host}`
+
+  const candidate = `https://${host}`
+  return ALLOWED_ORIGINS.includes(candidate) ? candidate : CANONICAL_ORIGIN
 }
 
 function isSecure(req: Request): boolean {
